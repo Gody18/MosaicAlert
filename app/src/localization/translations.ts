@@ -1,0 +1,78 @@
+export const translations = {
+  sw: {
+    home: {
+      scan_leaf: 'Piga Jani',
+      history: 'Historia',
+      education: 'Elimu',
+      settings: 'Mipangilio',
+    },
+    education: {
+      title: 'Elimu ya Mihogo',
+      what_is_mosaic: 'Mosaic ni nini?',
+      how_to_prevent: 'Jinsi ya kuzuia',
+      clean_seeds: 'Tumia mbegu safi',
+      remove_infected: 'Ondoa mimea iliyougua',
+      learn_more: 'Jifunze zaidi',
+    },
+    camera: {
+      guide: 'Weka jani ndani ya duara',
+      capture: 'Piga Picha',
+      quality_low: 'Picha haijajidhihirisha. Tafadhali rudia.',
+    },
+    result: {
+      healthy: 'Jani Hivyo Huonekana Kuwa Salama',
+      mosaic: 'Dalili za Ugonjwa wa Mosaic Zimepatikana',
+      uncertain: 'Matokeo Hayajidhihirishi',
+      confidence: 'Uhakika',
+      actions_healthy: 'Endelea kuangalia mara kwa mara.',
+      actions_mosaic: 'Ondoa mmea uliougua, sekea mbegu safi, na wasiliana na afisa kilimo.',
+      actions_uncertain: 'Rudia picha au wasiliana na mtaalamu.',
+      listen: 'Sikiliza',
+    },
+    settings: {
+      language: 'Lugha',
+      swahili: 'Kiswahili',
+      english: 'English',
+      data_privacy: 'Faragha ya Data',
+      upload_data: 'Ruhusu Kupakia Data',
+    },
+  },
+  en: {
+    home: {
+      scan_leaf: 'Scan Leaf',
+      history: 'History',
+      education: 'Education',
+      settings: 'Settings',
+    },
+    education: {
+      title: 'Cassava Education',
+      what_is_mosaic: 'What is Mosaic?',
+      how_to_prevent: 'How to Prevent?',
+      clean_seeds: 'Use clean seeds',
+      remove_infected: 'Remove infected plants',
+      learn_more: 'Learn more',
+    },
+    camera: {
+      guide: 'Place the leaf inside the circle',
+      capture: 'Capture Image',
+      quality_low: 'Image is not clear. Please retake.',
+    },
+    result: {
+      healthy: 'Leaf Appears Healthy',
+      mosaic: 'Mosaic Disease Detected',
+      uncertain: 'Results are Uncertain',
+      confidence: 'Confidence',
+      actions_healthy: 'Continue monitoring regularly.',
+      actions_mosaic: 'Remove infected plants, use clean seeds, and contact an extension officer.',
+      actions_uncertain: 'Retake the photo or seek professional advice.',
+      listen: 'Listen',
+    },
+    settings: {
+      language: 'Language',
+      swahili: 'Kiswahili',
+      english: 'English',
+      data_privacy: 'Data Privacy',
+      upload_data: 'Allow Data Upload',
+    },
+  },
+};
