@@ -1,0 +1,194 @@
+# MosaicAlert — Codemagic CI/CD
+# Docs: https://docs.codemagic.io/yaml-quick-start/building-a-react-native-app/
+#
+# Before your first build:
+# 1. Codemagic UI → Code signing: upload Android keystore (reference: mosaicalert_keystore).
+# 2. Codemagic UI → Team integrations: App Store Connect API key (reference: codemagic).
+# 3. Replace placeholder emails, PACKAGE_NAME, BUNDLE_ID, and APP_STORE_APPLE_ID below.
+# 4. Commit app/android/ OR rely on the "Ensure Android project" step (android/ is gitignored today).
+# 5. Either commit app/src/assets/models/mosaicalert_f16.tflite or let CI generate a placeholder model.
+
+workflows:
+  mosaic-alert-android:
+    name: MosaicAlert Android
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    working_directory: app
+    environment:
+      android_signing:
+        - mosaicalert_keystore
+      groups:
+        # Optional: create GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS in Codemagic (group: google_play)
+        # - google_play
+      vars:
+        PACKAGE_NAME: "com.mosaicalert.app"
+        NODE_VERSION: "22.13.1"
+      node: $NODE_VERSION
+      java: 17
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: "*"
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Ensure Android native project
+        script: |
+          set -e
+          if [ ! -d "android" ]; then
+            echo "android/ not found — generating from React Native 0.84 template..."
+            GEN_DIR="$(mktemp -d)"
+            npx @react-native-community/cli@latest init MosaicAlertAndroidGen \
+              --version 0.84.1 \
+              --directory "$GEN_DIR" \
+              --skip-git-init \
+              --pm npm \
+              --install-deps false
+            cp -R "$GEN_DIR"/MosaicAlertAndroidGen/android ./android
+            rm -rf "$GEN_DIR"
+            echo "Generated android/. Update PACKAGE_NAME / applicationId in android/app/build.gradle if needed."
+          fi
+      - name: Ensure TFLite model asset
+        script: |
+          set -e
+          MODEL_PATH="src/assets/models/mosaicalert_f16.tflite"
+          if [ ! -f "$MODEL_PATH" ]; then
+            echo "Generating placeholder TFLite model for CI..."
+            pip3 install --quiet tensorflow
+            python3 "../ml/generate_dummy_model.py"
+          fi
+      - name: Install npm dependencies
+        script: |
+          npm ci
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+      - name: Build Android release
+        script: |
+          set -e
+          LATEST_GOOGLE_PLAY_BUILD_NUMBER=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" 2>/dev/null || true)
+          if [ -z "$LATEST_GOOGLE_PLAY_BUILD_NUMBER" ]; then
+            UPDATED_BUILD_NUMBER=${BUILD_NUMBER:-1}
+          else
+            UPDATED_BUILD_NUMBER=$(($LATEST_GOOGLE_PLAY_BUILD_NUMBER + 1))
+          fi
+          cd android
+          ./gradlew bundleRelease \
+            -PversionCode=$UPDATED_BUILD_NUMBER \
+            -PversionName=1.0.$UPDATED_BUILD_NUMBER
+    artifacts:
+      - app/android/app/build/outputs/**/*.aab
+      - app/android/app/build/outputs/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true
+      # Uncomment after adding google_play credential group in Codemagic:
+      # google_play:
+      #   credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
+      #   track: internal
+      #   submit_as_draft: true
+
+  mosaic-alert-ios:
+    name: MosaicAlert iOS
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    working_directory: app
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: org.reactjs.native.example.app
+      vars:
+        BUNDLE_ID: "org.reactjs.native.example.app"
+        XCODE_WORKSPACE: "app.xcworkspace"
+        XCODE_SCHEME: "app"
+        APP_STORE_APPLE_ID: 0000000000
+        NODE_VERSION: "22.13.1"
+      node: $NODE_VERSION
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: "*"
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Ensure TFLite model asset
+        script: |
+          set -e
+          MODEL_PATH="src/assets/models/mosaicalert_f16.tflite"
+          if [ ! -f "$MODEL_PATH" ]; then
+            echo "Generating placeholder TFLite model for CI..."
+            pip3 install --quiet tensorflow
+            python3 "../ml/generate_dummy_model.py"
+          fi
+      - name: Install npm dependencies
+        script: |
+          npm ci
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios && pod install
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles --warn-only
+      - name: Increment build number
+        script: |
+          set -e
+          cd ios
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo "0")
+          agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --workspace "ios/$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - app/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true
+      # Uncomment after App Store Connect integration is configured:
+      # app_store_connect:
+      #   auth: integration
+      #   submit_to_testflight: true
+      #   submit_to_app_store: false
+
+  mosaic-alert-checks:
+    name: MosaicAlert Lint & Tests
+    max_build_duration: 30
+    instance_type: linux_x2
+    working_directory: app
+    environment:
+      vars:
+        NODE_VERSION: "22.13.1"
+      node: $NODE_VERSION
+    triggering:
+      events:
+        - push
+        - pull_request
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm ci
+      - name: Run ESLint
+        script: |
+          npm run lint
+      - name: Run Jest
+        script: |
+          npm test -- --passWithNoTests
