@@ -2,7 +2,9 @@
 # Docs: https://docs.codemagic.io/yaml-quick-start/building-a-react-native-app/
 #
 # Before your first build:
-# 1. Codemagic UI → Code signing: upload Android keystore (reference: mosaicalert_keystore).
+# 1. Android: this workflow builds a debug APK (no keystore). For Play Store release,
+#    upload a keystore in Codemagic → Code signing identities, then enable android_signing
+#    and switch the Gradle task to bundleRelease (see comments in mosaic-alert-android).
 # 2. Codemagic UI → Team integrations: App Store Connect API key (reference: codemagic).
 # 3. Replace placeholder emails, PACKAGE_NAME, BUNDLE_ID, and APP_STORE_APPLE_ID below.
 # 4. Commit app/android/ OR rely on the "Ensure Android project" step (android/ is gitignored today).
@@ -15,9 +17,9 @@ workflows:
     instance_type: mac_mini_m2
     working_directory: app
     environment:
-      android_signing:
-        - mosaicalert_keystore
-      # Optional Google Play publishing: add a `groups` list with your credential group, e.g.:
+      # Release signing (uncomment after uploading keystore in Codemagic UI):
+      # android_signing:
+      #   - mosaicalert_keystore
       # groups:
       #   - google_play
       vars:
@@ -65,19 +67,25 @@ workflows:
       - name: Set Android SDK location
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
-      - name: Build Android release
+      - name: Build Android debug APK
         script: |
           set -e
-          LATEST_GOOGLE_PLAY_BUILD_NUMBER=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" 2>/dev/null || true)
-          if [ -z "$LATEST_GOOGLE_PLAY_BUILD_NUMBER" ]; then
-            UPDATED_BUILD_NUMBER=${BUILD_NUMBER:-1}
-          else
-            UPDATED_BUILD_NUMBER=$(($LATEST_GOOGLE_PLAY_BUILD_NUMBER + 1))
-          fi
           cd android
-          ./gradlew bundleRelease \
-            -PversionCode=$UPDATED_BUILD_NUMBER \
-            -PversionName=1.0.$UPDATED_BUILD_NUMBER
+          ./gradlew assembleDebug
+      # Release AAB (requires android_signing + keystore in Codemagic UI):
+      # - name: Build Android release
+      #   script: |
+      #     set -e
+      #     LATEST_GOOGLE_PLAY_BUILD_NUMBER=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" 2>/dev/null || true)
+      #     if [ -z "$LATEST_GOOGLE_PLAY_BUILD_NUMBER" ]; then
+      #       UPDATED_BUILD_NUMBER=${BUILD_NUMBER:-1}
+      #     else
+      #       UPDATED_BUILD_NUMBER=$(($LATEST_GOOGLE_PLAY_BUILD_NUMBER + 1))
+      #     fi
+      #     cd android
+      #     ./gradlew bundleRelease \
+      #       -PversionCode=$UPDATED_BUILD_NUMBER \
+      #       -PversionName=1.0.$UPDATED_BUILD_NUMBER
     artifacts:
       - app/android/app/build/outputs/**/*.aab
       - app/android/app/build/outputs/**/*.apk
