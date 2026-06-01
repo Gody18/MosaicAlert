@@ -17,9 +17,9 @@ workflows:
     environment:
       android_signing:
         - mosaicalert_keystore
-      groups:
-        # Optional: create GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS in Codemagic (group: google_play)
-        # - google_play
+      # Optional Google Play publishing: add a `groups` list with your credential group, e.g.:
+      # groups:
+      #   - google_play
       vars:
         PACKAGE_NAME: "com.mosaicalert.app"
         NODE_VERSION: "22.13.1"
