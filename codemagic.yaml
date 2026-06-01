@@ -82,6 +82,11 @@ workflows:
       - name: Patch legacy Gradle repositories
         script: |
           node scripts/patch-gradle-repos.js
+      - name: Prepare native module artifacts
+        script: |
+          set -e
+          cd android
+          ./gradlew :react-native-worklets-core:prepareHeaders
       - name: Build Android debug APK
         script: |
           set -e
