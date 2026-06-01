@@ -79,6 +79,9 @@ workflows:
       - name: Set Android SDK location
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+      - name: Patch legacy Gradle repositories
+        script: |
+          node scripts/patch-gradle-repos.js
       - name: Build Android debug APK
         script: |
           set -e
